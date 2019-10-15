@@ -6,8 +6,8 @@
 
 #abstract data structure classes
 class ExpTree:
-    def __init__(self, val):
-        self.val = val
+    def __init__(self, tok):
+        self.token = tok
         self.leftChild = None
         self.rightChild = None
 
@@ -36,7 +36,7 @@ class Stack: #isEmpty, push, pop
         return self.items == []
 
     def push(self, item):
-        self.items.insert(-1, item)
+        self.items.append(item)
 
     def peek(self):
         return self.items[-1]
@@ -108,7 +108,9 @@ def constructExpTree():
         #this method pushes subtrees onto stack and assembles them as left children of new operators
         elif isOperator(item) is True: #if item is an operator
             tree = ExpTree(item)
+            print('stack popped item ', s.peek().token)
             tree.rightChild = s.pop()
+            print('stack popped item ', s.peek().token)
             tree.leftChild = s.pop()
             s.push(tree)
     tree = s.pop()
@@ -120,7 +122,7 @@ def printTree(eTree):
     #simple inorder DFS traversal to grab values from nodes
     if eTree is not None:
         printTree(eTree.leftChild)
-        print(eTree.val)
+        print(eTree.token)
         printTree(eTree.rightChild)
 
 def tokenizer(proposition):
