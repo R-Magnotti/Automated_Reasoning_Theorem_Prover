@@ -3,51 +3,10 @@
 #Code designed to convert well-formed-formula strings into a postfix tree
 #Author: Rich Magnotti (netid: rmagnott@ur.rochester.edu)
 #**********************************************************************************************************************
-
-#abstract data structure classes
-class ExpTree:
-    def __init__(self, tok):
-        self.token = tok
-        self.leftChild = None
-        self.rightChild = None
-
-class Queue:
-    def __init__(self):
-        self.items = []
-
-    def isEmpty(self):
-        return self.items == []
-
-    def enqueue(self, item):
-        self.items.insert(0,item)
-
-    def dequeue(self):
-        return self.items.pop()
-
-    def size(self):
-        return len(self.items)
-
-class Stack: #isEmpty, push, pop
-    def __init__(self):
-        self.items = []
-
-    def isEmpty(self):
-        # returns T or F
-        return self.items == []
-
-    def push(self, item):
-        self.items.append(item)
-
-    def peek(self):
-        return self.items[-1]
-
-    def pop(self):
-        return self.items.pop()
-
-    def printS(self):
-        for item in self.items:
-            print('curr item in stack ', item)
-
+from CNF_Converter import toCNF
+from Data_Structs import Queue
+from Data_Structs import Stack
+from Data_Structs import ExpTree
 #grammar:
 #     sentence ::= letter
 #     expression ::= '(' expression ')'
@@ -206,5 +165,6 @@ def main():
     #now create an expression tree from the postfix equation
     eT = constructExpTree()
     printTree(eT)
+    toCNF(eT)
 
 main()
