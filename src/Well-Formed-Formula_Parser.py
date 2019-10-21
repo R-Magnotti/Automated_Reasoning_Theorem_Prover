@@ -135,6 +135,7 @@ def makePF():
     for item in tokenList:
         if isLetter(item) is True: #if operand
             tokensListPF.append(item)
+        #important idea here is that the parens are taken into consideration for precedence but never pushed to EXPtree
         elif item is '(':
             s.push(item)
         elif item is ')':

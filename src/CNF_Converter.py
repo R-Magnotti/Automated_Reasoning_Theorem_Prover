@@ -43,10 +43,10 @@ def bicElim(tree):
 opList = ['IMP', 'BIC', 'OR', 'AND', 'NOT']
 
 def isOp(tree):
-    if tree.token in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-        return False
-    elif tree.token in opList:
+    if tree.token in opList:
         return True
+    else:
+        return False
 
 def flipToken(tree):
     if isOp(tree) is False:
@@ -55,31 +55,36 @@ def flipToken(tree):
         return tree.token
 
     elif isOp(tree) is True:
-        if tree.token is 'AND':
+        if tree.token in 'AND':
             tree.token = 'OR'
             print('new token ', tree.token)
             return tree.token
 
-        elif tree.token is 'OR':
+        elif tree.token in 'OR':
             tree.token = 'AND'
             print('new token ', tree.token)
             return tree.token
 
 def propNeg(tree):
+    #essentially DeMorgan's law
+    print('propping negs')
     if tree is not None:
         propNeg(tree.leftChild)
-        if tree.leftChild is None:
-            tree.token = flipToken(tree)
+        print('propping negs to current node ', tree.token)
+        if tree is not rootNode:
+            if tree.leftChild: #if not bottom node
+                print('current stuck left child ', tree.token)
+                tree.leftChild.token = flipToken(tree.leftChild)
+                tree.rightChild.token = flipToken(tree.rightChild)
         else:
-            print('propping negs, current tree node = ', tree.leftChild.token)
             tree.leftChild.token = flipToken(tree.leftChild)
-            tree.rightChild.token = flipToken(tree.rightChild)
+    return tree
 
 def impElim(tree):
-    if tree is not None:
+    if tree.leftChild is not None:
         impElim(tree.leftChild)
         if tree.token is 'IMP':
-            propNeg(tree.leftChild) #the negative propagation only affects left children
+            tree = propNeg(tree) #the negative propagation only affects left children
             tree.token = 'OR'
     return tree
 
@@ -90,17 +95,20 @@ def printTree(eTree):
         print(eTree.token)
         printTree(eTree.rightChild)
 
+global rootNode
 def toCNF(tree):
+    #the following will set rootNode reference pointer to same memory location as 'tree'
+    global rootNode
+    rootNode = tree #set global variable so we know which node is root
     print('----------------------------------------------------------------------------------------------------')
     CNF1 = bicElim(tree)
-    print('CNF tree----------')
+    print('CNF tree after bicon ----------')
     printTree(CNF1)
 
     CNF2 = impElim(CNF1)
-    print('CNF tree----------')
+    print('CNF tree after imp   ----------')
     printTree(CNF2)
 
-    #moveNeg(tree)
     #disToCon(tree)
 def main():
     pass
