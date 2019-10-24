@@ -46,4 +46,4 @@ class Stack: #isEmpty, push, pop
 
     def printS(self):
         for item in self.items:
-            print('curr item in stack ', item)
+            print(item)

@@ -67,9 +67,7 @@ def constructExpTree():
         #this method pushes subtrees onto stack and assembles them as left children of new operators
         elif isOperator(item) is True: #if item is an operator
             tree = ExpTree(item)
-            print('stack popped item ', s.peek().token)
             tree.rightChild = s.pop()
-            print('stack popped item ', s.peek().token)
             tree.leftChild = s.pop()
             s.push(tree)
     tree = s.pop()
@@ -131,20 +129,27 @@ def tokenizer(proposition):
 #4) if token is an operator (AKA AND, OR, etc...), pop everything from the stack->PFstring that has >= precedence,
 #       then push curr item
 def makePF():
+    inParen = False
     s = Stack()
     for item in tokenList:
+        s.printS()
         if isLetter(item) is True: #if operand
             tokensListPF.append(item)
         #important idea here is that the parens are taken into consideration for precedence but never pushed to EXPtree
-        elif item is '(':
+        elif item is 'LPAR':
             s.push(item)
-        elif item is ')':
+            inParen = True
+        elif item is 'RPAR':
             tmp = s.peek()
-            while tmp is not '(':
+            while tmp is not 'LPAR':
                 tmp = s.pop()
                 tokensListPF.append(tmp)
+            inParen = False
         elif isOperator(item) is True: #if operator
-            if s.isEmpty() is False: #if there's anything on the stack
+            if inParen is True:
+                print('we enter parens. Pushing op to stack, ', item)
+                s.push(item)
+            elif s.isEmpty() is False: #if there's anything on the stack
                 tmp = s.peek()
                 while precedence_map[item] >= precedence_map[tmp] and s.isEmpty() is False:
                     tmp = s.pop()

@@ -18,7 +18,6 @@ S = Stack() #global stack
 def bicElim(tree):
     #do DFS to find biconditionals and solve bottom up
     if tree is not None:
-        print('current node ', tree.token)
         bicElim(tree.leftChild)
         if tree.token is 'BIC':
             tmp1 = tree.leftChild
@@ -50,30 +49,24 @@ def isOp(tree):
 
 def flipToken(tree):
     if isOp(tree) is False:
-        tree.token = '~' + tree.token
-        print('new token ', tree.token)
+        tree.token = 'NOT' + tree.token
         return tree.token
 
     elif isOp(tree) is True:
         if tree.token in 'AND':
             tree.token = 'OR'
-            print('new token ', tree.token)
             return tree.token
 
         elif tree.token in 'OR':
             tree.token = 'AND'
-            print('new token ', tree.token)
             return tree.token
 
 def propNeg(tree):
     #essentially DeMorgan's law
-    print('propping negs')
     if tree is not None:
         propNeg(tree.leftChild)
-        print('propping negs to current node ', tree.token)
         if tree is not rootNode:
             if tree.leftChild: #if not bottom node
-                print('current stuck left child ', tree.token)
                 tree.leftChild.token = flipToken(tree.leftChild)
                 tree.rightChild.token = flipToken(tree.rightChild)
         else:
@@ -95,6 +88,53 @@ def printTree(eTree):
         print(eTree.token)
         printTree(eTree.rightChild)
 
+def checkDL(tree):
+    if isOp(tree.leftChild) is False: #if left child is a letter
+        if tree.rightChild.token is not tree.token:
+            return True
+def checkDR(tree):
+    if isOp(tree.rightChild) is False: #if left child is a letter
+        if tree.leftChild is not tree.token:
+            return True
+
+def distributeL(tree):
+    #for left side of distribution
+    print('in distrib L tree def, current node ', tree.token, 'its left child ', tree.leftChild.token, 'its right child ', tree.rightChild.token)
+    tree.leftChild.leftChild = ExpTree(tree.leftChild)
+    tree.leftChild.token = tree.token
+    tree.leftChild.rightChild = ExpTree(tree.rightChild.leftChild)
+
+    #for right side of distribution
+    tree.rightChild.token = flipToken(tree.rightChild)
+    tree.rightChild.leftChild = tree.leftChild
+
+    tree.token = flipToken(tree)
+
+def distributeR(tree):
+    print('in distrib R tree def, current node ', tree.token, 'its left child ', tree.leftChild.token,
+          'its right child ', tree.rightChild.token)
+    #for left side of distribution
+    tree.rightChild.rightChild = ExpTree(tree.rightChild)
+    tree.rightChild.token = tree.token
+    tree.rightChild.leftChild = ExpTree(tree.leftChild.rightChild)
+
+    #for right side of distribution
+    tree.leftChild.token = flipToken(tree.leftChild)
+    tree.leftChild.rightChild = tree.rightChild
+
+    tree.token = flipToken(tree)
+
+def elimDisj(tree):
+    if tree.leftChild is not None or tree.rightChild is not None:
+        print('elim disj curr node and left child ', tree.token, tree.leftChild.token)
+        elimDisj(tree.leftChild)
+        if checkDL(tree) is True:
+            distributeL(tree)
+        elif checkDR(tree) is True:
+            distributeR(tree)
+        elimDisj(tree.rightChild)
+    return tree
+
 global rootNode
 def toCNF(tree):
     #the following will set rootNode reference pointer to same memory location as 'tree'
@@ -108,8 +148,11 @@ def toCNF(tree):
     CNF2 = impElim(CNF1)
     print('CNF tree after imp   ----------')
     printTree(CNF2)
+    print('passing tree to impelim ', CNF2.token, 'global rootnode ', rootNode.token)
 
-    #disToCon(tree)
+    finCNF = elimDisj(tree)
+    print('CNF tree after disj  ----------')
+    printTree(finCNF)
 def main():
     pass
 
