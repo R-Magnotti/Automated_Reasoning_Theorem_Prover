@@ -12,6 +12,7 @@
 #step4: distribute disjunction over conjunction
 from Data_Structs import ExpTree
 from Data_Structs import Stack
+import copy
 
 S = Stack() #global stack
 
@@ -19,14 +20,14 @@ def bicElim(tree):
     #do DFS to find biconditionals and solve bottom up
     if tree is not None:
         bicElim(tree.leftChild)
-        if tree.token is 'BIC':
+        if tree.token is '<=>':
             tmp1 = tree.leftChild
             tmp2 = tree.rightChild
 
             tree.token = 'AND' #set current biconditional to an 'and'
 
-            tL = ExpTree('IMP')
-            tR = ExpTree('IMP')
+            tL = ExpTree('=>')
+            tR = ExpTree('=>')
 
             tree.leftChild = tL
             tree.rightChild = tR
@@ -39,7 +40,7 @@ def bicElim(tree):
         bicElim(tree.rightChild)
     return tree
 
-opList = ['IMP', 'BIC', 'OR', 'AND', 'NOT']
+opList = ['=>', '<=>', '|', '&', '~']
 
 def isOp(tree):
     if tree.token in opList:
@@ -49,16 +50,16 @@ def isOp(tree):
 
 def flipToken(tree):
     if isOp(tree) is False:
-        tree.token = 'NOT' + tree.token
+        tree.token = '~' + tree.token
         return tree.token
 
     elif isOp(tree) is True:
-        if tree.token in 'AND':
-            tree.token = 'OR'
+        if tree.token in '&':
+            tree.token = '|'
             return tree.token
 
-        elif tree.token in 'OR':
-            tree.token = 'AND'
+        elif tree.token in '|':
+            tree.token = '&'
             return tree.token
 
 def propNeg(tree):
@@ -76,9 +77,9 @@ def propNeg(tree):
 def impElim(tree):
     if tree.leftChild is not None:
         impElim(tree.leftChild)
-        if tree.token is 'IMP':
+        if tree.token is '=>':
             tree = propNeg(tree) #the negative propagation only affects left children
-            tree.token = 'OR'
+            tree.token = '|'
     return tree
 
 def printTree(eTree):
@@ -88,52 +89,71 @@ def printTree(eTree):
         print(eTree.token)
         printTree(eTree.rightChild)
 
-def checkDL(tree):
-    if isOp(tree.leftChild) is False: #if left child is a letter
-        if tree.rightChild.token is not tree.token:
-            return True
-def checkDR(tree):
-    if isOp(tree.rightChild) is False: #if left child is a letter
-        if tree.leftChild is not tree.token:
-            return True
+def distribCD(tree):
+    print('current item ', tree.token)
+    if tree.leftChild.leftChild is not None and tree.rightChild.rightChild is not None:
+        
+        distribCD(tree.leftChild)
+        #stuff
+        distribCD(tree)
+        distribCD(tree.rightChild)
+        #stuff
 
-def distributeL(tree):
-    #for left side of distribution
-    print('in distrib L tree def, current node ', tree.token, 'its left child ', tree.leftChild.token, 'its right child ', tree.rightChild.token)
-    tree.leftChild.leftChild = ExpTree(tree.leftChild)
-    tree.leftChild.token = tree.token
-    tree.leftChild.rightChild = ExpTree(tree.rightChild.leftChild)
+    else:
+        if tree.token is '|' and (tree.leftChild.token is '&' or tree.rightChild.token is '&'):
+        #case1: atomic proposition distributed over plural proposition
+            if isOp(tree.leftChild) is False or isOp(tree.rightChild) is False:
+                #to keep left side always as the one with the atomic proposition
+                if tree.rightChild.leftChild is False:
+                    tmp1 = tree.leftChild
+                    tmp2 = tree.rightChild
+                    tree.leftChild = tmp2
+                    tree.rightChild = tmp1
+                #doesn't matter which side is which, b/c will be passed to recursion again
+                tmp1 = copy.deepcopy(tree.leftChild)
+                tmp2 = copy.deepcopy(tree.rightChild.leftChild)
+                tmp3 = copy.deepcopy(tree.rightChild.rightChild)
 
-    #for right side of distribution
-    tree.rightChild.token = flipToken(tree.rightChild)
-    tree.rightChild.leftChild = tree.leftChild
+                tree.token = '&'
+                tree.leftChild = ExpTree('|')
+                tree.rightChild = ExpTree('|')
 
-    tree.token = flipToken(tree)
+                tree.leftChild.leftChild = ExpTree('')
+                tree.leftChild.leftChild = copy.deepcopy(tmp1)
 
-def distributeR(tree):
-    print('in distrib R tree def, current node ', tree.token, 'its left child ', tree.leftChild.token,
-          'its right child ', tree.rightChild.token)
-    #for left side of distribution
-    tree.rightChild.rightChild = ExpTree(tree.rightChild)
-    tree.rightChild.token = tree.token
-    tree.rightChild.leftChild = ExpTree(tree.leftChild.rightChild)
+                tree.leftChild.rightChild = ExpTree('')
+                tree.leftChild.rightChild = copy.deepcopy(tmp2)
 
-    #for right side of distribution
-    tree.leftChild.token = flipToken(tree.leftChild)
-    tree.leftChild.rightChild = tree.rightChild
+                tree.rightChild.leftChild = ExpTree('')
+                tree.rightChild.leftChild = copy.deepcopy(tmp1)
 
-    tree.token = flipToken(tree)
+                tree.rightChild.rightChild = ExpTree('')
+                tree.rightChild.rightChild = copy.deepcopy(tmp3)
 
-def elimDisj(tree):
-    if tree.leftChild is not None or tree.rightChild is not None:
-        print('elim disj curr node and left child ', tree.token, tree.leftChild.token)
-        elimDisj(tree.leftChild)
-        if checkDL(tree) is True:
-            distributeL(tree)
-        elif checkDR(tree) is True:
-            distributeR(tree)
-        elimDisj(tree.rightChild)
-    return tree
+                distribCD(tree)
+
+            #if proposition is a clause/sentence
+            else:
+                tmp1 = copy.deepcopy(tree.leftChild)
+                tmp2 = copy.deepcopy(tree.rightChild)
+
+                tree.token = '&'
+                tree.leftChild = ExpTree('|')
+                tree.rightChild = ExpTree('|')
+
+                tree.leftChild.leftChild = ExpTree('')
+                tree.leftChild.leftChild = copy.deepcopy(tmp1.leftChild)
+
+                tree.leftChild.rightChild = ExpTree('')
+                tree.leftChild.rightChild = copy.deepcopy(tmp2)
+
+                tree.rightChild.leftChild = ExpTree('')
+                tree.rightChild.leftChild = copy.deepcopy(tmp1.rightChild)
+
+                tree.rightChild.rightChild = ExpTree('')
+                tree.rightChild.rightChild = copy.deepcopy(tmp2)
+
+                distribCD(tree)
 
 global rootNode
 def toCNF(tree):
@@ -148,11 +168,10 @@ def toCNF(tree):
     CNF2 = impElim(CNF1)
     print('CNF tree after imp   ----------')
     printTree(CNF2)
-    print('passing tree to impelim ', CNF2.token, 'global rootnode ', rootNode.token)
 
-    finCNF = elimDisj(tree)
+    distribCD(tree)
     print('CNF tree after disj  ----------')
-    printTree(finCNF)
+    printTree(tree)
 def main():
     pass
 
