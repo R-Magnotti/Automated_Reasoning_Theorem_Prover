@@ -89,71 +89,80 @@ def printTree(eTree):
         print(eTree.token)
         printTree(eTree.rightChild)
 
-def distribCD(tree):
-    print('current item ', tree.token)
-    if tree.leftChild.leftChild is not None and tree.rightChild.rightChild is not None:
-        
-        distribCD(tree.leftChild)
-        #stuff
-        distribCD(tree)
-        distribCD(tree.rightChild)
-        #stuff
-
+def has2Gens(tree):
+    if tree.leftChild.leftChild is not None or tree.leftChild.rightChild is not None:
+        return True
+    if tree.rightChild.leftChild is not None or tree.rightChild.rightChild is not None:
+        return True
     else:
-        if tree.token is '|' and (tree.leftChild.token is '&' or tree.rightChild.token is '&'):
-        #case1: atomic proposition distributed over plural proposition
-            if isOp(tree.leftChild) is False or isOp(tree.rightChild) is False:
-                #to keep left side always as the one with the atomic proposition
-                if tree.rightChild.leftChild is False:
-                    tmp1 = tree.leftChild
-                    tmp2 = tree.rightChild
-                    tree.leftChild = tmp2
-                    tree.rightChild = tmp1
-                #doesn't matter which side is which, b/c will be passed to recursion again
-                tmp1 = copy.deepcopy(tree.leftChild)
-                tmp2 = copy.deepcopy(tree.rightChild.leftChild)
-                tmp3 = copy.deepcopy(tree.rightChild.rightChild)
+        return False
 
-                tree.token = '&'
-                tree.leftChild = ExpTree('|')
-                tree.rightChild = ExpTree('|')
+def fixDisjunction(tree):
+    if tree.token is '|' and (tree.leftChild.token is '&' or tree.rightChild.token is '&'):
+        # case1: atomic proposition distributed over plural proposition
+        if isOp(tree.leftChild) is False or isOp(tree.rightChild) is False:
+            # to keep left side always as the one with the atomic proposition
+            if tree.rightChild.leftChild is None:
+                print('tree is reversed ')
+                tmp1 = tree.leftChild
+                tmp2 = tree.rightChild
+                tree.leftChild = tmp2
+                tree.rightChild = tmp1
+            # doesn't matter which side is which, b/c will be passed to recursion again
+            tmp1 = copy.deepcopy(tree.leftChild)
+            tmp2 = copy.deepcopy(tree.rightChild.leftChild)
+            tmp3 = copy.deepcopy(tree.rightChild.rightChild)
 
-                tree.leftChild.leftChild = ExpTree('')
-                tree.leftChild.leftChild = copy.deepcopy(tmp1)
+            tree.token = '&'
+            tree.leftChild = ExpTree('|')
+            tree.rightChild = ExpTree('|')
 
-                tree.leftChild.rightChild = ExpTree('')
-                tree.leftChild.rightChild = copy.deepcopy(tmp2)
+            tree.leftChild.leftChild = ExpTree('')
+            tree.leftChild.leftChild = copy.deepcopy(tmp1)
 
-                tree.rightChild.leftChild = ExpTree('')
-                tree.rightChild.leftChild = copy.deepcopy(tmp1)
+            tree.leftChild.rightChild = ExpTree('')
+            tree.leftChild.rightChild = copy.deepcopy(tmp2)
 
-                tree.rightChild.rightChild = ExpTree('')
-                tree.rightChild.rightChild = copy.deepcopy(tmp3)
+            tree.rightChild.leftChild = ExpTree('')
+            tree.rightChild.leftChild = copy.deepcopy(tmp1)
 
-                distribCD(tree)
+            tree.rightChild.rightChild = ExpTree('')
+            tree.rightChild.rightChild = copy.deepcopy(tmp3)
 
-            #if proposition is a clause/sentence
-            else:
-                tmp1 = copy.deepcopy(tree.leftChild)
-                tmp2 = copy.deepcopy(tree.rightChild)
+        # if proposition is a clause/sentence
+        else:
+            tmp1 = copy.deepcopy(tree.leftChild)
+            tmp2 = copy.deepcopy(tree.rightChild)
 
-                tree.token = '&'
-                tree.leftChild = ExpTree('|')
-                tree.rightChild = ExpTree('|')
+            tree.token = '&'
+            tree.leftChild = None
+            tree.rightChild = None
+            tree.leftChild = ExpTree('|')
+            tree.rightChild = ExpTree('|')
 
-                tree.leftChild.leftChild = ExpTree('')
-                tree.leftChild.leftChild = copy.deepcopy(tmp1.leftChild)
+            tree.leftChild.leftChild = copy.deepcopy(tmp1.leftChild)
 
-                tree.leftChild.rightChild = ExpTree('')
-                tree.leftChild.rightChild = copy.deepcopy(tmp2)
+            tree.leftChild.rightChild = copy.deepcopy(tmp2)
 
-                tree.rightChild.leftChild = ExpTree('')
-                tree.rightChild.leftChild = copy.deepcopy(tmp1.rightChild)
+            tree.rightChild.leftChild = copy.deepcopy(tmp1.rightChild)
 
-                tree.rightChild.rightChild = ExpTree('')
-                tree.rightChild.rightChild = copy.deepcopy(tmp2)
+            tree.rightChild.rightChild = copy.deepcopy(tmp2)
 
-                distribCD(tree)
+def topDownDFS(tree):
+    if tree.token is '|' and (tree.leftChild.token is '&' or tree.rightChild.token is '&'):
+        DFSBottomUp(tree)
+    else:
+        return
+
+def DFSBottomUp(tree):
+    #base case is a node with 2 generations
+    if has2Gens(tree) is not True:
+        DFSBottomUp(tree.leftChild)
+        DFSBottomUp(tree.rightChild)
+    else:
+        fixDisjunction(tree)
+        topDownDFS(tree.leftChild)
+        topDownDFS(tree.rightChild)
 
 global rootNode
 def toCNF(tree):
@@ -169,7 +178,7 @@ def toCNF(tree):
     print('CNF tree after imp   ----------')
     printTree(CNF2)
 
-    distribCD(tree)
+    DFSBottomUp(tree)
     print('CNF tree after disj  ----------')
     printTree(tree)
 def main():
