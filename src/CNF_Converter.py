@@ -57,7 +57,6 @@ def bicElim(tree):
         if '<=>' in tree.token:
             tmp1 = copy.deepcopy(tree.leftChild)
             tmp2 = copy.deepcopy(tree.rightChild)
-
             tree.token = '&' #set current biconditional to an 'and'
 
             tL = ExpTree('=>')
