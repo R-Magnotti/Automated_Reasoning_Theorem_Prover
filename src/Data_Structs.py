@@ -26,6 +26,7 @@ class ExpTree:
         self.token = tok
         self.leftChild = None
         self.rightChild = None
+        self.isNeg = None
 
 class Stack: #isEmpty, push, pop
     def __init__(self):

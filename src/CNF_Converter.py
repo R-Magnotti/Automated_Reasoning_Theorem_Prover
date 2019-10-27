@@ -16,30 +16,6 @@ import copy
 
 S = Stack() #global stack
 
-def bicElim(tree):
-    #do DFS to find biconditionals and solve bottom up
-    if tree is not None:
-        bicElim(tree.leftChild)
-        if tree.token is '<=>':
-            tmp1 = tree.leftChild
-            tmp2 = tree.rightChild
-
-            tree.token = 'AND' #set current biconditional to an 'and'
-
-            tL = ExpTree('=>')
-            tR = ExpTree('=>')
-
-            tree.leftChild = tL
-            tree.rightChild = tR
-
-            tL.leftChild = tmp1
-            tL.rightChild = tmp2
-
-            tR.rightChild = tmp2
-            tR.leftChild = tmp1
-        bicElim(tree.rightChild)
-    return tree
-
 opList = ['=>', '<=>', '|', '&', '~']
 
 def isOp(tree):
@@ -49,8 +25,14 @@ def isOp(tree):
         return False
 
 def flipToken(tree):
+    print('current item being flipped ', tree.token, ' with negative status ', tree.isNeg)
     if isOp(tree) is False:
-        tree.token = '~' + tree.token
+        if tree.isNeg is None or tree.isNeg is False:
+            tree.token = '~' + tree.token
+            tree.isNeg = True
+        elif tree.isNeg is True:
+            tree.token = tree.token.replace('~', '')
+            tree.isNeg = False
         return tree.token
 
     elif isOp(tree) is True:
@@ -62,25 +44,56 @@ def flipToken(tree):
             tree.token = '&'
             return tree.token
 
-def propNeg(tree):
-    #essentially DeMorgan's law
+# def pushNegs(tree):
+#     #DFS to flip all starred values
+#     if tree is not None:
+#         pushNegs(tree.leftChild)
+#         if tree.isNeg is True:
+#             flipToken(tree)
+#             tree.isNeg = False
+#         pushNegs(tree.rightChild)
+
+#b/c we are doing from bottom up, we will never have to worry about negating over =>
+def makeNeg(tree):
     if tree is not None:
-        propNeg(tree.leftChild)
-        if tree is not rootNode:
-            if tree.leftChild: #if not bottom node
-                tree.leftChild.token = flipToken(tree.leftChild)
-                tree.rightChild.token = flipToken(tree.rightChild)
-        else:
-            tree.leftChild.token = flipToken(tree.leftChild)
+        makeNeg(tree.leftChild)
+        flipToken(tree)
+        makeNeg(tree.rightChild)
+
+def bicElim(tree):
+    #do DFS to find biconditionals and solve bottom up
+    if tree is not None:
+        bicElim(tree.leftChild)
+        if '<=>' in tree.token:
+            tmp1 = copy.deepcopy(tree.leftChild)
+            tmp2 = copy.deepcopy(tree.rightChild)
+
+            tree.token = '&' #set current biconditional to an 'and'
+
+            tL = ExpTree('=>')
+            tR = ExpTree('=>')
+
+            tree.leftChild = tL
+            tree.rightChild = tR
+
+            tL.leftChild = copy.deepcopy(tmp1)
+            tL.rightChild = copy.deepcopy(tmp2)
+
+            tR.rightChild = copy.deepcopy(tmp2)
+            tR.leftChild = copy.deepcopy(tmp1)
+        bicElim(tree.rightChild)
     return tree
 
+#look back at
 def impElim(tree):
-    if tree.leftChild is not None:
+    if tree is not None:
         impElim(tree.leftChild)
-        if tree.token is '=>':
-            tree = propNeg(tree) #the negative propagation only affects left children
+        print('in imp func. current token ', tree.token)
+        if '=>' in tree.token:
+            print('Now in if statement for =>')
+            makeNeg(tree.leftChild)
             tree.token = '|'
-    return tree
+        impElim(tree.rightChild)
 
 def printTree(eTree):
     #simple inorder DFS traversal to grab values from nodes
@@ -164,24 +177,27 @@ def DFSBottomUp(tree):
         topDownDFS(tree.leftChild)
         topDownDFS(tree.rightChild)
 
-global rootNode
 def toCNF(tree):
     #the following will set rootNode reference pointer to same memory location as 'tree'
-    global rootNode
     rootNode = tree #set global variable so we know which node is root
     print('----------------------------------------------------------------------------------------------------')
-    CNF1 = bicElim(tree)
+    bicElim(rootNode)
     print('CNF tree after bicon ----------')
-    printTree(CNF1)
+    printTree(rootNode)
 
-    CNF2 = impElim(CNF1)
+    impElim(rootNode)
     print('CNF tree after imp   ----------')
-    printTree(CNF2)
+    printTree(rootNode)
 
-    DFSBottomUp(tree)
-    print('CNF tree after disj  ----------')
-    printTree(tree)
-def main():
-    pass
+    print('Before pushing negs')
+    printTree(rootNode)
+    print('After pushing negs ')
+    printTree(rootNode)
 
-main()
+    if has2Gens(rootNode) is True:
+        DFSBottomUp(rootNode)
+        print('CNF tree after disj  ----------')
+        printTree(rootNode)
+
+    print('Final CNF Tree')
+    printTree(rootNode)
