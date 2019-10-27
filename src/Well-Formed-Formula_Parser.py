@@ -6,6 +6,7 @@
 from CNF_Converter import toCNF
 from Data_Structs import Stack
 from Data_Structs import ExpTree
+import re
 #grammar:
 #     sentence ::= letter
 #     expression ::= '(' expression ')'
@@ -13,7 +14,7 @@ from Data_Structs import ExpTree
 #     expression ::= expression '<=>' expression
 #     expression ::= expression '^' expression
 #     expression ::= expression 'v' expression
-#     expression ::= '~' expression
+#     expression ::= '!' expression
 #dictates all allowed tokens
 precedence_map = \
         {
@@ -21,7 +22,7 @@ precedence_map = \
             '<=>'  : 6,
             '&'    : 3,
             '|'   : 4, #python won't recognize the v - 'or' symbol, so we will use the boolean operator 'or'
-            '~'    : 2,
+            '!'    : 2,
             '('    : 1,
             '=>*': 5,
             '<=>*': 6,
@@ -29,8 +30,28 @@ precedence_map = \
             '|*': 4,  # python won't recognize the v - 'or' symbol, so we will use the boolean operator 'or'
         }
 
+def flipToken(tree):
+    print('current item being flipped ', tree.token, ' with negative status ', tree.isNeg)
+    if isLetter(tree.token) is True:
+        print('current flip is recognized to be a letter! ')
+        if tree.isNeg is None or tree.isNeg is False:
+            tree.token = '!' + tree.token
+            tree.isNeg = True
+
+        elif tree.isNeg is True:
+            tree.token = tree.token.replace('!', '')
+            tree.isNeg = False
+
+    else:
+        if re.search('[&]', tree.token):
+            print('recognized that we have an & to be flipped ')
+            tree.token = '|'
+
+        elif re.search('[|]', tree.token):
+            tree.token = '&'
+
 def isLetter(lett):
-    if lett in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' or '~' in lett or 'NOT' in lett or '*' in lett:
+    if (re.search('[a-zA-z]', lett) and re.search('[!]', lett)) or (re.search('[a-zA-z]', lett) and re.search('[*]', lett)) or re.search('[a-zA-z]', lett):
         return True
     else:
         return False
@@ -40,6 +61,13 @@ def isOperator(op):
         return True
     else:
         return False
+
+def flipListToken(token):
+        if re.search('[*]', token):
+            token = token.replace('*', '')
+        else:
+            token =  token + '*'
+        return token
 
 #create an expression tree to load the logical sentence into
 def constructExpTree():
@@ -53,16 +81,16 @@ def constructExpTree():
         if isLetter(item) is True:
             tree = ExpTree(item)
             #if tree token has negation flag, set its value of neg to true
-            if '*' in tree.token:
+            if re.search('[*]', item):
                 tree.token = tree.token.replace('*', '')
-                tree.isNeg = True
+                flipToken(tree)
             s.push(tree)
         #this method pushes subtrees onto stack and assembles them as left children of new operators
-        elif isOperator(item) is True: #if item is an operator
+        elif isLetter(item) is False: #if item is an operator
             tree = ExpTree(item)
-            if '*' in tree.token:
+            if re.search('[*]', item):
                 tree.token = tree.token.replace('*', '')
-                tree.isNeg = True
+                flipToken(tree)
             tree.rightChild = s.pop()
             tree.leftChild = s.pop()
             s.push(tree)
@@ -92,6 +120,7 @@ def printTree(eTree):
 tokensListPF = []
 def tokenizerPF(tokenList):
     s = Stack()
+    k = 0
     for item in tokenList:
         #print('current stack ')
         #s.printS()
@@ -100,47 +129,43 @@ def tokenizerPF(tokenList):
 
         #important idea here is that the parens are taken into consideration for precedence but never pushed to EXPtree
         #NOW IN NEGATION AND PARENS
-        # elif tokenList[k] is '(' and tokenList[k - 1] is '~':
-        #     numParenSets = 1 #b/c we've already encountered one paren to get into this elif
-        #     j = k + 1
-        #     while numParenSets > 0:
-        #         print('current j value ', j)
-        #         if tokenList[j] is '(':
-        #             s.push(tokenList[j])
-        #             numParenSets = numParenSets + 1
-        #         elif tokenList[j] is ')':
-        #             numParenSets = numParenSets - 1
-        #         elif tokenList[j] is '~':
-        #             pass
-        #         else:
-        #             #set everything equal to its prime for toggling
-        #             if '*' in tokenList[j]:
-        #                 tokenList[j] = tokenList[j][:-1]
-        #             else:
-        #                 tokenList[j] =  tokenList[j] + '*'
-        #         j = j + 1
-        #     print('now done with pushing negs, result ', tokenList)
+        if tokenList[k] is '(' and tokenList[k - 1] is '!':
+            numParenSets = 1 #b/c we've already encountered one paren to get into this elif
+            j = k + 1
+            while numParenSets > 0:
+                if tokenList[j] is '(':
+                    s.push(tokenList[j])
+                    numParenSets = numParenSets + 1
+                elif tokenList[j] is ')':
+                    numParenSets = numParenSets - 1
+                elif tokenList[j] is '!':
+                    tokenList[j] = ' '
+                    break
+                else:
+                    tokenList[j] = flipListToken(tokenList[j])
+                j = j + 1
+            tokenList[k - 1] = ' '
+            s.pop() #get rid of negation on stack
 
-        elif item is '(':
+        if item is '(':
             s.push(item)
         elif item is ')':
             tmp = s.pop()
             while tmp is not '(':
                 tokensListPF.append(tmp)
                 tmp = s.pop()
-        else: #if operator
+        elif isOperator(item) is True: #if operator
             while s.isEmpty() is False and precedence_map[s.peek()] >= precedence_map[item]:
                     tmp = s.pop()
                     tokensListPF.append(tmp)
             s.push(item)
-
+        k = k + 1
     while s.isEmpty() is False:
         tokensListPF.append(s.pop())
 
 def main():
     tmp = input("enter your logical sentence\n")
     tokenList = tmp.split(" ")
-    print('split token list ', tokenList)
     tokenizerPF(tokenList)  # convert the tokens now to postfix order
     print('postfix str ', tokensListPF)
     #now create an expression tree from the postfix equation

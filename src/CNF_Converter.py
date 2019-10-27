@@ -16,7 +16,7 @@ import copy
 
 S = Stack() #global stack
 
-opList = ['=>', '<=>', '|', '&', '~']
+opList = ['=>', '<=>', '|', '&', '!']
 
 def isOp(tree):
     if tree.token in opList:
@@ -25,13 +25,12 @@ def isOp(tree):
         return False
 
 def flipToken(tree):
-    print('current item being flipped ', tree.token, ' with negative status ', tree.isNeg)
     if isOp(tree) is False:
         if tree.isNeg is None or tree.isNeg is False:
-            tree.token = '~' + tree.token
+            tree.token = '!' + tree.token
             tree.isNeg = True
         elif tree.isNeg is True:
-            tree.token = tree.token.replace('~', '')
+            tree.token = tree.token.replace('!', '')
             tree.isNeg = False
         return tree.token
 
@@ -43,15 +42,6 @@ def flipToken(tree):
         elif tree.token in '|':
             tree.token = '&'
             return tree.token
-
-# def pushNegs(tree):
-#     #DFS to flip all starred values
-#     if tree is not None:
-#         pushNegs(tree.leftChild)
-#         if tree.isNeg is True:
-#             flipToken(tree)
-#             tree.isNeg = False
-#         pushNegs(tree.rightChild)
 
 #b/c we are doing from bottom up, we will never have to worry about negating over =>
 def makeNeg(tree):
@@ -84,13 +74,10 @@ def bicElim(tree):
         bicElim(tree.rightChild)
     return tree
 
-#look back at
 def impElim(tree):
     if tree is not None:
         impElim(tree.leftChild)
-        print('in imp func. current token ', tree.token)
         if '=>' in tree.token:
-            print('Now in if statement for =>')
             makeNeg(tree.leftChild)
             tree.token = '|'
         impElim(tree.rightChild)
@@ -116,7 +103,6 @@ def fixDisjunction(tree):
         if isOp(tree.leftChild) is False or isOp(tree.rightChild) is False:
             # to keep left side always as the one with the atomic proposition
             if tree.rightChild.leftChild is None:
-                print('tree is reversed ')
                 tmp1 = tree.leftChild
                 tmp2 = tree.rightChild
                 tree.leftChild = tmp2
@@ -180,24 +166,11 @@ def DFSBottomUp(tree):
 def toCNF(tree):
     #the following will set rootNode reference pointer to same memory location as 'tree'
     rootNode = tree #set global variable so we know which node is root
-    print('----------------------------------------------------------------------------------------------------')
     bicElim(rootNode)
-    print('CNF tree after bicon ----------')
-    printTree(rootNode)
 
     impElim(rootNode)
-    print('CNF tree after imp   ----------')
-    printTree(rootNode)
-
-    print('Before pushing negs')
-    printTree(rootNode)
-    print('After pushing negs ')
-    printTree(rootNode)
 
     if has2Gens(rootNode) is True:
         DFSBottomUp(rootNode)
-        print('CNF tree after disj  ----------')
-        printTree(rootNode)
 
     print('Final CNF Tree')
-    printTree(rootNode)
