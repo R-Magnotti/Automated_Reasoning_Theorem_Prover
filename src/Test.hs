@@ -23,9 +23,7 @@ runProblem testName kb q = do
 
    let resultModelChecking = inference (ttEntails kb q) (ttEntails kb ("!" ++ q))
    
-   isResolved1 <- plResolution kb q
-   isResolved2 <- plResolution kb ("!" ++ q)
-   let resultResolution = inference isResolved1 isResolved2
+   let resultResolution = inference (plResolution kb q) (plResolution kb ("!" ++ q))
  
    isSAT1 <- walkSatEntails kb q
    isSAT2 <- walkSatEntails kb ("!" ++ q)
@@ -53,7 +51,7 @@ driver = do
 
    printf "\nPress Enter to continue...\n"
    hFlush stdout
-   getLine   
+   getLine
 
    runProblem "Wumpus World test."
               "!P11 & (B11 <=> (P12 | P21)) & (B21 <=> (P11 | P22 | P31)) & !B11 & B21"
