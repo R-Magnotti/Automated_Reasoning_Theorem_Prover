@@ -69,8 +69,8 @@ def bicElim(tree):
             tL.leftChild = copy.deepcopy(tmp1)
             tL.rightChild = copy.deepcopy(tmp2)
 
-            tR.rightChild = copy.deepcopy(tmp2)
-            tR.leftChild = copy.deepcopy(tmp1)
+            tR.rightChild = copy.deepcopy(tmp1)
+            tR.leftChild = copy.deepcopy(tmp2)
         bicElim(tree.rightChild)
     return tree
 
